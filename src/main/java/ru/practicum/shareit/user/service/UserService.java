@@ -1,6 +1,5 @@
 package ru.practicum.shareit.user.service;
 
-import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.user.User;
 
 import java.util.Map;
@@ -12,5 +11,5 @@ public interface UserService {
 
     Map<String, String> deleteUser(Long id);
 
-    User getUserById (Long id);
+    User getUserById(Long id);
 }

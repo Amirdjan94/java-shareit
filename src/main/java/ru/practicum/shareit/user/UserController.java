@@ -15,28 +15,28 @@ import java.util.Map;
 public class UserController {
     UserService userService;
 
-    public UserController(@Qualifier("userServiceImpl")UserService userService) {
+    public UserController(@Qualifier("userServiceImpl") UserService userService) {
         this.userService = userService;
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody User user){
+    public User create(@Valid @RequestBody User user) {
         return userService.createUser(user);
     }
 
     @PatchMapping("/{id}")
     public User updateUser(@RequestBody Map<String, String> updates,
-                           @PathVariable("id") Long id){
+                           @PathVariable("id") Long id) {
         return userService.updateUser(updates, id);
     }
 
     @DeleteMapping("/{id}")
-    public Map<String, String> delete(@PathVariable Long id){
+    public Map<String, String> delete(@PathVariable Long id) {
         return userService.deleteUser(id);
     }
 
     @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id){
+    public User getUser(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 }

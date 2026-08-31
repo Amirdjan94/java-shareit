@@ -1,15 +1,11 @@
 package ru.practicum.shareit.booking.dto;
 
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Component;
 import ru.practicum.shareit.booking.StatusBooking;
 
 import java.time.LocalDateTime;
 
-/**
- * TODO Sprint add-bookings.
- */
 @Component
 @Data
 public class BookingDto {

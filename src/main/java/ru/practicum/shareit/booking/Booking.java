@@ -3,12 +3,8 @@ package ru.practicum.shareit.booking;
 import lombok.Data;
 import org.springframework.format.annotation.DateTimeFormat;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * TODO Sprint add-bookings.
- */
 @Data
 public class Booking {
     Long id; // уникальный идентификатор бронирования
