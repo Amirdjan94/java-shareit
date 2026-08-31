@@ -109,7 +109,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void checkItem(Long itemId, Long userId) {
-        if (!items.containsKey(itemId) || items.get(itemId).getUserId() != userId) {
+        if (!items.containsKey(itemId) || items.get(itemId).getUserId().equals(userId)) {
             log.warn("Не корректные входные данные");
             throw new ObjectNotFoundException("Пользователя по указанному id не существует или некорректный id");
         }

@@ -74,7 +74,7 @@ public class UserServiceImpl implements UserService {
 
     private void checkEmailCurrentUser(User user, String email) {
         for (User value : users.values()) {
-            if (user.getId() != value.getId() && value.getEmail().equals(email)) {
+            if (!user.getId().equals(value.getId()) && value.getEmail().equals(email)) {
                 log.warn("Имейл уже используется");
                 throw new DuplicatedDataException("Этот имейл уже используется");
             }
