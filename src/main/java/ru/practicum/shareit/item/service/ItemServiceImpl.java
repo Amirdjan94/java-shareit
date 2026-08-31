@@ -81,7 +81,7 @@ public class ItemServiceImpl implements ItemService {
             return List.of();
         }
         return items.values().stream()
-                .filter(item ->  (item.getName().toLowerCase().contains(text.toLowerCase())
+                .filter(item -> (item.getName().toLowerCase().contains(text.toLowerCase())
                         || item.getDescription().toLowerCase().contains(text.toLowerCase()))
                         && item.getAvailable() == true)
                 .map((item) -> itemMapper.toItemSpecificationDto(item))
@@ -109,7 +109,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void checkItem(Long itemId, Long userId) {
-        if (!items.containsKey(itemId) || items.get(itemId).getUserId().equals(userId)) {
+        if (!items.containsKey(itemId) || !items.get(itemId).getUserId().equals(userId)) {
             log.warn("Не корректные входные данные");
             throw new ObjectNotFoundException("Пользователя по указанному id не существует или некорректный id");
         }
