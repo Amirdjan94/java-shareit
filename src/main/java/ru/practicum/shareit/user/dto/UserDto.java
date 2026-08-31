@@ -1,21 +1,14 @@
-package ru.practicum.shareit.user;
+package ru.practicum.shareit.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import org.springframework.stereotype.Component;
 
-/**
- * TODO Sprint add-controllers.
- */
+@Component
 @Data
-public class User {
-    Long id; // уникальный идентификатор пользователя
-    @NotNull
-    @NotBlank
+public class UserDto {
     String name; // имя или логин пользователя
-    @Email
-    @NotNull
-    @NotBlank
     String email; // адрес электронной почты (учтите, что два пользователя не могут иметь одинаковый адрес электронной почты)
 }
