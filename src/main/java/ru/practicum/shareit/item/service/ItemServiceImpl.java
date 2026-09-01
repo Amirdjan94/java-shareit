@@ -126,11 +126,11 @@ public class ItemServiceImpl implements ItemService {
         Item item = items.get(itemId);
         for (String s : updatesItem.keySet()) {
             if (s.equals("name") && updatesItem.get(s) != null
-            && !updatesItem.get(s).isBlank()) {
+                    && !updatesItem.get(s).isBlank()) {
                 item.setName(updatesItem.get(s).trim());
             } else if (s.equals("description") && updatesItem.get(s) != null
                     && !updatesItem.get(s).isBlank()
-            && updatesItem.get(s).length()<=200) {
+                    && updatesItem.get(s).length() <= 200) {
                 item.setDescription(updatesItem.get(s).trim());
             } else if (s.equals("available")) {
                 item.setAvailable(Boolean.parseBoolean(updatesItem.get(s)));
