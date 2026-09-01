@@ -19,56 +19,53 @@ import java.util.stream.Collectors;
 public class ItemServiceImpl implements ItemService {
 
     UserService userService;
-    ItemMapper itemMapper;
     Map<Long, Item> items = new HashMap<>();
 
-    public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService,
-                           @Qualifier("itemMapper") ItemMapper itemMapper) {
+    public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService) {
         this.userService = userService;
-        this.itemMapper = itemMapper;
     }
 
     @Override
-    public Item createItem(Long userId, ItemDto itemDto) {
+    public ItemDto createItem(Long userId, ItemDto itemDto) {
         log.info("Получили запрос на добавление новой вещи - " + itemDto + "\n от пользователя c ID - " + userId);
         log.info("Проверяем ID пользоваеля");
-        checkUserId(userId);
+        userService.getUserById(userId);
         normalizeField(itemDto);
         Long itemId = getNextId();
-        items.put(itemId, itemMapper.toItem(itemId, userId, itemDto));
-        return items.get(itemId);
+        items.put(itemId, ItemMapper.toItem(itemId, userId, itemDto));
+        return ItemMapper.toItemDto(items.get(itemId));
     }
 
     @Override
-    public Item updateItem(Long userId, Map<String, String> updatesItem, Long itemId) {
+    public ItemDto updateItem(Long userId, Map<String, String> updatesItem, Long itemId) {
         log.info("Получили запрос на редактирование вещи с ID - " + itemId + "\n от пользователя c ID - " + userId);
         log.info("Проверяем ID пользоваеля");
-        checkUserId(userId);
+        userService.getUserById(userId);
         log.info("Проверяем ID вещи и его владельца");
         checkItem(itemId, userId);
         log.info("Проверяем тело запроса");
         checkUpdatesItemMap(updatesItem);
         log.info("Обновление данных");
-        return update(updatesItem, itemId);
+        return ItemMapper.toItemDto(update(updatesItem, itemId));
     }
 
     @Override
-    public Item getItemById(Long itemId) {
+    public ItemDto getItemById(Long itemId) {
         log.info("Получили запрос на получении вещи с Id - " + itemId);
         if (itemId < 0 || !items.containsKey(itemId)) {
             log.warn("Вещи по указанному id не существует - " + itemId);
-            throw new ObjectNotFoundException("Вещи по указанному id не существует или некорректный id");
+            throw new ObjectNotFoundException("Вещи по указанному id не существует или некорректный id - " + itemId);
         }
-        return items.get(itemId);
+        return ItemMapper.toItemDto(items.get(itemId));
     }
 
     @Override
     public Collection<ItemSpecificationDto> getAllItemsFromUser(Long userId) {
         log.info("Получили запрос на получении всех вещей для пользователя с Id - " + userId);
-        checkUserId(userId);
+        userService.getUserById(userId);
         return items.values().stream()
                 .filter((item) -> item.getUserId().equals(userId))
-                .map((item) -> itemMapper.toItemSpecificationDto(item))
+                .map((item) -> ItemMapper.toItemSpecificationDto(item))
                 .collect(Collectors.toList());
     }
 
@@ -76,28 +73,21 @@ public class ItemServiceImpl implements ItemService {
     public Collection<ItemSpecificationDto> searchItemsForUser(Long userId, String text) {
         log.info("Получили запрос от пользователя с Id - " + userId +
                 " на получении всех вещей содержащих строку - " + text);
-        checkUserId(userId);
-        if (text.isBlank()) {
+        userService.getUserById(userId);
+        if (text == null || text.isBlank()) {
             return List.of();
         }
         return items.values().stream()
-                .filter(item -> (item.getName().toLowerCase().contains(text.toLowerCase())
-                        || item.getDescription().toLowerCase().contains(text.toLowerCase()))
-                        && item.getAvailable() == true)
-                .map((item) -> itemMapper.toItemSpecificationDto(item))
+                .filter(item -> item.getAvailable() == true &&
+                        (item.getName().toLowerCase().contains(text.toLowerCase())
+                                || item.getDescription().toLowerCase().contains(text.toLowerCase())))
+                .map((item) -> ItemMapper.toItemSpecificationDto(item))
                 .collect(Collectors.toList());
     }
 
     private void normalizeField(ItemDto itemDto) {
         itemDto.setDescription(itemDto.getDescription().trim());
         itemDto.setName(itemDto.getName().trim());
-    }
-
-    private void checkUserId(Long id) {
-        if (id < 0 || userService.getUserById(id) == null) {
-            log.warn("Пользователя по указаному id не существует - " + id);
-            throw new ObjectNotFoundException("Пользователя по указанному id не существует или некорректный id");
-        }
     }
 
     private long getNextId() {
@@ -135,12 +125,18 @@ public class ItemServiceImpl implements ItemService {
     private Item update(Map<String, String> updatesItem, Long itemId) {
         Item item = items.get(itemId);
         for (String s : updatesItem.keySet()) {
-            if (s.equals("name")) {
+            if (s.equals("name") && updatesItem.get(s) != null
+            && !updatesItem.get(s).isBlank()) {
                 item.setName(updatesItem.get(s).trim());
-            } else if (s.equals("description")) {
+            } else if (s.equals("description") && updatesItem.get(s) != null
+                    && !updatesItem.get(s).isBlank()
+            && updatesItem.get(s).length()<=200) {
                 item.setDescription(updatesItem.get(s).trim());
             } else if (s.equals("available")) {
                 item.setAvailable(Boolean.parseBoolean(updatesItem.get(s)));
+            } else {
+                log.warn("Не корректные входные данные");
+                throw new ConditionsNotMetException("Не корректное тело запроса");
             }
         }
         return items.get(itemId);

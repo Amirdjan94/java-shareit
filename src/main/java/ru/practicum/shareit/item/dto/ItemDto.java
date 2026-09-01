@@ -6,13 +6,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 import org.springframework.stereotype.Component;
 
-/**
- * TODO Sprint add-controllers.
- */
 @Component
 @Data
 public class ItemDto {
-    @NotNull
+    Long id;
     @NotBlank
     @Size(max = 200)
     String name; // краткое название

@@ -6,6 +6,8 @@ import ru.practicum.shareit.exception.ConditionsNotMetException;
 import ru.practicum.shareit.exception.DuplicatedDataException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.user.User;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.mapper.UserMapper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -16,24 +18,24 @@ public class UserServiceImpl implements UserService {
     Map<Long, User> users = new HashMap<>();
 
     @Override
-    public User createUser(User user) {
+    public UserDto createUser(UserDto userDto) {
         log.info("Получили запрос на добавление пользователя");
-        System.out.println("Добавляем пользователя !!!!!!!!!! - " + user);
+        User user = UserMapper.toUser(userDto);
         checkEmailNewUser(user);
         user.setId(getNextId());
         users.put(user.getId(), user);
         log.info("В список добавили пользователя - " + user.toString());
-        return user;
+        return UserMapper.toUserDto(user);
     }
 
     @Override
-    public User updateUser(Map<String, String> updates, Long id) {
+    public UserDto updateUser(Map<String, String> updates, Long id) {
         log.info("Получили запрос на обновение данных пользоватля");
         checkUpdates(updates);
         checkUserId(id);
         User user = users.get(id);
         updateFields(user, updates);
-        return user;
+        return UserMapper.toUserDto(user);
     }
 
     @Override
@@ -47,11 +49,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getUserById(Long id) {
+    public UserDto getUserById(Long id) {
         log.info("Получили запрос на передачу пользоватля с ID-" + id);
         checkUserId(id);
         log.info("Передали пользователя по ID-" + id);
-        return users.get(id);
+        return UserMapper.toUserDto(users.get(id));
     }
 
     private long getNextId() {
@@ -82,9 +84,9 @@ public class UserServiceImpl implements UserService {
     }
 
     private void checkUserId(Long id) {
-        if (id < 0 || !users.keySet().contains(id)) {
+        if (id == null || id < 0 || !users.keySet().contains(id)) {
             log.warn("Пользователя по указаному id не существует - " + id);
-            throw new ObjectNotFoundException("Этот имейл уже используется");
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
         }
     }
 
@@ -103,12 +105,17 @@ public class UserServiceImpl implements UserService {
 
     private void updateFields(User user, Map<String, String> updates) {
         for (String s : updates.keySet()) {
-            if (s.equals("name")) {
+            if (s.equals("name") && updates.get(s) != null
+                    && !updates.get(s).isBlank()) {
                 user.setName(updates.get(s));
-            }
-            if (s.equals("email")) {
+            } else if (s.equals("email") && updates.get(s) != null
+                    && !updates.get(s).isBlank()
+                    && updates.get(s).contains("@")) {
                 checkEmailCurrentUser(user, updates.get(s));
                 user.setEmail(updates.get(s));
+            } else {
+                log.warn("Не корректные входные данные");
+                throw new ConditionsNotMetException("Не корректное тело запроса");
             }
         }
     }

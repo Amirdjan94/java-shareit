@@ -3,13 +3,11 @@ package ru.practicum.shareit.user;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.Map;
 
-/**
- * TODO Sprint add-controllers.
- */
 @RestController
 @RequestMapping(path = "/users")
 public class UserController {
@@ -20,13 +18,13 @@ public class UserController {
     }
 
     @PostMapping
-    public User create(@Valid @RequestBody User user) {
-        return userService.createUser(user);
+    public UserDto create(@Valid @RequestBody UserDto userDto) {
+        return userService.createUser(userDto);
     }
 
     @PatchMapping("/{id}")
-    public User updateUser(@RequestBody Map<String, String> updates,
-                           @PathVariable("id") Long id) {
+    public UserDto updateUser(@RequestBody Map<String, String> updates,
+                              @PathVariable("id") Long id) {
         return userService.updateUser(updates, id);
     }
 
@@ -36,7 +34,7 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id) {
+    public UserDto getUser(@PathVariable Long id) {
         return userService.getUserById(id);
     }
 }
