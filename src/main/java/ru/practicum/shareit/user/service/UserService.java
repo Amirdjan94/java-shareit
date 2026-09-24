@@ -1,6 +1,7 @@
 package ru.practicum.shareit.user.service;
 
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 
 import java.util.Map;
 
@@ -12,4 +13,8 @@ public interface UserService {
     Map<String, String> deleteUser(Long id);
 
     UserDto getUserById(Long id);
+
+    public User getUserEntityById(Long id);
+
+    public User checkObjectOwnerAndGetUserEntityById(Long id);
 }

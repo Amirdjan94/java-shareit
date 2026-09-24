@@ -6,9 +6,6 @@ import org.springframework.format.annotation.DateTimeFormat;
 
 import java.time.LocalDateTime;
 
-/**
- * TODO Sprint add-item-requests.
- */
 @Data
 public class ItemRequest {
     Long id; // уникальный идентификатор запроса

@@ -2,9 +2,12 @@ package ru.practicum.shareit.item.mapper;
 
 import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemSpecificationDto;
+import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.model.User;
+
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 @NoArgsConstructor
@@ -18,14 +21,13 @@ public class ItemMapper {
         return itemDto;
     }
 
-    public static Item toItem(Long itemId, Long userId, ItemDto itemDto) {
+    public static Item toItem(User user, ItemDto itemDto) {
         Item item = new Item();
-        item.setId(itemId);
         item.setName(itemDto.getName());
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
-        item.setUserId(userId);
-        item.setRequestItemId(null);
+        item.setUser(user);
+        item.setRequest(null);
         return item;
     }
 
@@ -34,5 +36,30 @@ public class ItemMapper {
         itemSpecificationDto.setName(item.getName());
         itemSpecificationDto.setDescription(item.getDescription());
         return itemSpecificationDto;
+    }
+
+    public static ItemWithBookingDto toItemWithBookingDto(Item item, LocalDateTime lastBooking,
+                                                          LocalDateTime nextBooking,
+                                                          List<CommentDto> comment) {
+        ItemWithBookingDto itemWithBookingDto = new ItemWithBookingDto();
+        itemWithBookingDto.setId(item.getId());
+        itemWithBookingDto.setComments(comment);
+        itemWithBookingDto.setName(item.getName());
+        itemWithBookingDto.setDescription(item.getDescription());
+        itemWithBookingDto.setLastBooking(lastBooking);
+        itemWithBookingDto.setNextBooking(nextBooking);
+        itemWithBookingDto.setAvailable(item.getAvailable());
+        return itemWithBookingDto;
+    }
+
+    public static ItemListDto toItemListDto(Item item, LocalDateTime lastBooking,
+                                            LocalDateTime nextBooking) {
+        ItemListDto itemListDto = new ItemListDto();
+        itemListDto.setId(item.getId());
+        itemListDto.setName(item.getName());
+        itemListDto.setDescription(item.getDescription());
+        itemListDto.setLastBooking(lastBooking);
+        itemListDto.setNextBooking(nextBooking);
+        return itemListDto;
     }
 }

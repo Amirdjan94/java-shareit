@@ -3,15 +3,26 @@ package ru.practicum.shareit.item.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.StatusBooking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.ConditionsNotMetException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.ItemSpecificationDto;
+import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.mapper.CommentMapper;
 import ru.practicum.shareit.item.mapper.ItemMapper;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
+import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.service.UserService;
 
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -19,21 +30,30 @@ import java.util.stream.Collectors;
 public class ItemServiceImpl implements ItemService {
 
     UserService userService;
-    Map<Long, Item> items = new HashMap<>();
+    BookingRepository bookingRepository;
+    ItemRepository itemRepository;
+    CommentRepository commentRepository;
 
-    public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService) {
+    public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService,
+                           @Qualifier("itemRepository") ItemRepository itemRepository,
+                           @Qualifier("bookingRepository") BookingRepository bookingRepository,
+                           @Qualifier("commentRepository") CommentRepository commentRepository
+    ) {
         this.userService = userService;
+        this.itemRepository = itemRepository;
+        this.bookingRepository = bookingRepository;
+        this.commentRepository = commentRepository;
     }
 
     @Override
     public ItemDto createItem(Long userId, ItemDto itemDto) {
         log.info("Получили запрос на добавление новой вещи - " + itemDto + "\n от пользователя c ID - " + userId);
         log.info("Проверяем ID пользоваеля");
-        userService.getUserById(userId);
+        User user = userService.getUserEntityById(userId);
         normalizeField(itemDto);
-        Long itemId = getNextId();
-        items.put(itemId, ItemMapper.toItem(itemId, userId, itemDto));
-        return ItemMapper.toItemDto(items.get(itemId));
+        Item item = ItemMapper.toItem(user, itemDto);
+        Item newItem = itemRepository.save(item);
+        return ItemMapper.toItemDto(newItem);
     }
 
     @Override
@@ -50,22 +70,58 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public ItemDto getItemById(Long itemId) {
+    public ItemWithBookingDto getItemById(Long itemId) {
         log.info("Получили запрос на получении вещи с Id - " + itemId);
-        if (itemId < 0 || !items.containsKey(itemId)) {
+        Optional<Item> item = itemRepository.findById(itemId);
+        if (itemId < 0 || item.isEmpty()) {
             log.warn("Вещи по указанному id не существует - " + itemId);
             throw new ObjectNotFoundException("Вещи по указанному id не существует или некорректный id - " + itemId);
         }
-        return ItemMapper.toItemDto(items.get(itemId));
+        List<CommentDto> commentListForItem = getCommetListForItem(itemId)
+                .stream()
+                .map(comment -> CommentMapper.toCommentDto(comment, comment.getUser()))
+                .collect(Collectors.toList());
+        List<Booking> listBooking = bookingRepository.findBookingByItemAndLocalDateTime(itemId, LocalDateTime.now());
+        if (listBooking.size() == 0) {
+            return ItemMapper.toItemWithBookingDto(item.get(), null,
+                    null, commentListForItem);
+        } else if (listBooking.size() == 1) {
+            return ItemMapper.toItemWithBookingDto(item.get(), listBooking.get(0).getStart(),
+                    null, commentListForItem);
+        }
+        return ItemMapper.toItemWithBookingDto(item.get(), listBooking.get(0).getStart(),
+                listBooking.get(1).getStart(), commentListForItem);
     }
 
     @Override
-    public Collection<ItemSpecificationDto> getAllItemsFromUser(Long userId) {
+    public Item getItemEntityById(Long itemId) {
+        log.info("Получили запрос на получении вещи с Id - " + itemId);
+        Optional<Item> item = itemRepository.findById(itemId);
+        if (itemId < 0 || item.isEmpty()) {
+            log.warn("Вещи по указанному id не существует - " + itemId);
+            throw new ObjectNotFoundException("Вещи по указанному id не существует или некорректный id - " + itemId);
+        }
+        return item.get();
+    }
+
+    @Override
+    public Collection<ItemListDto> getAllItemsFromUser(Long userId) {
         log.info("Получили запрос на получении всех вещей для пользователя с Id - " + userId);
         userService.getUserById(userId);
-        return items.values().stream()
-                .filter((item) -> item.getUserId().equals(userId))
-                .map((item) -> ItemMapper.toItemSpecificationDto(item))
+        return itemRepository.getListItemForUser(userId)
+                .stream()
+                .map((item) -> {
+                    List<Booking> listBooking = bookingRepository.findBookingByItemAndLocalDateTime(item.getId(), LocalDateTime.now());
+                    if (listBooking.size() == 0) {
+                        return ItemMapper.toItemListDto(item, null,
+                                null);
+                    } else if (listBooking.size() == 1) {
+                        return ItemMapper.toItemListDto(item, listBooking.get(0).getStart(),
+                                listBooking.get(0).getStart());
+                    }
+                    return ItemMapper.toItemListDto(item, listBooking.get(0).getStart(),
+                            listBooking.get(1).getStart());
+                })
                 .collect(Collectors.toList());
     }
 
@@ -77,7 +133,7 @@ public class ItemServiceImpl implements ItemService {
         if (text == null || text.isBlank()) {
             return List.of();
         }
-        return items.values().stream()
+        return itemRepository.search(text).stream()
                 .filter(item -> item.getAvailable() == true &&
                         (item.getName().toLowerCase().contains(text.toLowerCase())
                                 || item.getDescription().toLowerCase().contains(text.toLowerCase())))
@@ -85,21 +141,36 @@ public class ItemServiceImpl implements ItemService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public CommentDto addCommentForItem(Long userId, Long itemId, CommentDto commentDto) {
+        log.info("Получили запрос на добавление комментария - " + commentDto);
+        User user = userService.getUserEntityById(userId);
+        Item item = getItemEntityById(itemId);
+        checkBookingItem(user, item);
+        Comment comment = CommentMapper.toComment(commentDto, user, item);
+        return CommentMapper.toCommentDto(commentRepository.save(comment), user);
+    }
+
+    private List<Comment> getCommetListForItem(Long itemId) {
+        return commentRepository.getCommetListForItem(itemId);
+    }
+
+    private void checkBookingItem(User user, Item item) {
+        if (bookingRepository.findBookingByItemAndUser(user.getId(), item.getId(), LocalDateTime.now(),
+                StatusBooking.APPROVED).isEmpty()) {
+            log.warn("Не корректные входные данные");
+            throw new ConditionsNotMetException("Не выполнены условия для комментария");
+        }
+    }
+
     private void normalizeField(ItemDto itemDto) {
         itemDto.setDescription(itemDto.getDescription().trim());
         itemDto.setName(itemDto.getName().trim());
     }
 
-    private long getNextId() {
-        long counter = items.keySet().stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++counter;
-    }
-
     private void checkItem(Long itemId, Long userId) {
-        if (!items.containsKey(itemId) || !items.get(itemId).getUserId().equals(userId)) {
+        Item item = itemRepository.findById(itemId).get();
+        if (itemRepository.findById(itemId).isEmpty() || !item.getUser().getId().equals(userId)) {
             log.warn("Не корректные входные данные");
             throw new ObjectNotFoundException("Пользователя по указанному id не существует или некорректный id");
         }
@@ -123,7 +194,7 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private Item update(Map<String, String> updatesItem, Long itemId) {
-        Item item = items.get(itemId);
+        Item item = itemRepository.findById(itemId).get();
         for (String s : updatesItem.keySet()) {
             if (s.equals("name") && updatesItem.get(s) != null
                     && !updatesItem.get(s).isBlank()) {
@@ -139,6 +210,6 @@ public class ItemServiceImpl implements ItemService {
                 throw new ConditionsNotMetException("Не корректное тело запроса");
             }
         }
-        return items.get(itemId);
+        return itemRepository.save(item);
     }
 }
