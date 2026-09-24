@@ -215,14 +215,9 @@ public class BookingServiceImpl implements BookingService {
     private void checkDateTimeItem(BookingDto bookingDto) {
         LocalDateTime now = LocalDateTime.now();
         if (bookingDto.getEnd().isBefore(now) ||
-                bookingDto.getStart().isBefore(now) ||
                 bookingDto.getStart().isAfter(bookingDto.getEnd())) {
             log.warn("Не корректные даты периода бронирования");
-            throw new ConditionsNotMetException("Не корректные даты периода бронирования"
-                    + bookingDto.getEnd().isBefore(now)
-                    + bookingDto.getStart().isBefore(now)
-                    + bookingDto.getStart().isAfter(bookingDto.getEnd())
-                    + now);
+            throw new ConditionsNotMetException("Не корректные даты периода бронирования");
         }
     }
 
