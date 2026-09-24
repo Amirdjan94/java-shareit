@@ -14,9 +14,9 @@ import ru.practicum.shareit.exception.ConditionsNotMetException;
 import ru.practicum.shareit.exception.ForbiddenException;
 import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.item.service.ItemService;
+import ru.practicum.shareit.item.service.ItemServiceImpl;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,12 +30,12 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     BookingRepository bookingRepository;
-    UserService userService;
-    ItemService itemService;
+    UserServiceImpl userService;
+    ItemServiceImpl itemService;
 
     public BookingServiceImpl(@Qualifier("bookingRepository") BookingRepository bookingRepository,
-                              @Qualifier("userServiceImpl") UserService userService,
-                              @Qualifier("itemServiceImpl") ItemService itemService) {
+                              @Qualifier("userServiceImpl") UserServiceImpl userService,
+                              @Qualifier("itemServiceImpl") ItemServiceImpl itemService) {
         this.bookingRepository = bookingRepository;
         this.userService = userService;
         this.itemService = itemService;
@@ -58,7 +58,6 @@ public class BookingServiceImpl implements BookingService {
         return BookingMapper.toBookingSpecificationDto(newBooking);
     }
 
-    @Override
     public Booking getBookingEntityById(Long bookingId) {
         log.info("Получили запрос на получении бронирования с Id - " + bookingId);
         Optional<Booking> booking = bookingRepository.findById(bookingId);
@@ -84,10 +83,10 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingSpecificationDto approveBooking(Long userId, Long bookingId, Boolean statusBooking) {
         log.info("Получили запрос на обновление статуса бронирования");
-        User user = userService.checkObjectOwnerAndGetUserEntityById(userId);
+        userService.checkObjectOwnerAndGetUserEntityById(userId);
         Booking booking = getBookingEntityById(bookingId);
-        checkBookingOwner(user, booking);
-        if (statusBooking) {
+        checkBookingOwner(userId, booking);
+        if (statusBooking && booking.getStatus().equals(StatusBooking.WAITING)) {
             booking.setStatus(StatusBooking.APPROVED);
             return BookingMapper.toBookingSpecificationDto(bookingRepository.save(booking));
         } else {
@@ -184,11 +183,6 @@ public class BookingServiceImpl implements BookingService {
         return new ArrayList<>();
     }
 
-//    @Override
-//    public List<Booking> findBookingByItem(Long itemId) {
-//        return bookingRepository.findBookingByItem(itemId);
-//    }
-
     private void checkObjectOwner(Long userId, Booking booking) {
         userService.getUserById(userId);
         if (!booking.getItem().getUser().getId().equals(userId) &&
@@ -198,10 +192,10 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
-    private void checkBookingOwner(User user, Booking booking) {
-        if (!booking.getItem().getUser().getId().equals(user.getId())) {
-            log.warn("Вещь не принадлежит указанному пользователю с id - " + user.getId());
-            throw new ObjectNotFoundException("Вещь не принадлежит указанному пользователю с id - " + user.getId());
+    private void checkBookingOwner(Long userId, Booking booking) {
+        if (!booking.getItem().getUser().getId().equals(userId)) {
+            log.warn("Вещь не принадлежит указанному пользователю с id - " + userId);
+            throw new ObjectNotFoundException("Вещь не принадлежит указанному пользователю с id - " + userId);
         }
     }
 

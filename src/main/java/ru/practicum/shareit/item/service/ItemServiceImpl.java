@@ -16,25 +16,22 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.user.service.UserServiceImpl;
 
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class ItemServiceImpl implements ItemService {
 
-    UserService userService;
+    UserServiceImpl userService;
     BookingRepository bookingRepository;
     ItemRepository itemRepository;
     CommentRepository commentRepository;
 
-    public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService,
+    public ItemServiceImpl(@Qualifier("userServiceImpl") UserServiceImpl userService,
                            @Qualifier("itemRepository") ItemRepository itemRepository,
                            @Qualifier("bookingRepository") BookingRepository bookingRepository,
                            @Qualifier("commentRepository") CommentRepository commentRepository
@@ -93,7 +90,6 @@ public class ItemServiceImpl implements ItemService {
                 listBooking.get(1).getStart(), commentListForItem);
     }
 
-    @Override
     public Item getItemEntityById(Long itemId) {
         log.info("Получили запрос на получении вещи с Id - " + itemId);
         Optional<Item> item = itemRepository.findById(itemId);
@@ -108,21 +104,20 @@ public class ItemServiceImpl implements ItemService {
     public Collection<ItemListDto> getAllItemsFromUser(Long userId) {
         log.info("Получили запрос на получении всех вещей для пользователя с Id - " + userId);
         userService.getUserById(userId);
-        return itemRepository.getListItemForUser(userId)
-                .stream()
-                .map((item) -> {
-                    List<Booking> listBooking = bookingRepository.findBookingByItemAndLocalDateTime(item.getId(), LocalDateTime.now());
-                    if (listBooking.size() == 0) {
-                        return ItemMapper.toItemListDto(item, null,
-                                null);
-                    } else if (listBooking.size() == 1) {
-                        return ItemMapper.toItemListDto(item, listBooking.get(0).getStart(),
-                                listBooking.get(0).getStart());
-                    }
-                    return ItemMapper.toItemListDto(item, listBooking.get(0).getStart(),
-                            listBooking.get(1).getStart());
-                })
-                .collect(Collectors.toList());
+        List<Item> itemList = itemRepository.getListItemForUser(userId); // Собрали вещи
+
+        List<Long> itemIds = itemList.stream()
+                .map((el) -> el.getId())
+                .collect(Collectors.toList()); // Собрали айдишники вещей
+
+        Map<Long, List<Booking>> itemBookingMap = getItemBookingMap(itemIds); // Сопоставляем лист броней с вещами
+
+        Map<Long, List<Comment>> itemCommentMap = getItemCommentMap(itemIds); // Сопоставляем лист комментарий с вещами
+
+        List<ItemListDto> itemListDto = getItemListDto(itemList, itemBookingMap, itemCommentMap); // Собираем ItemListDto
+
+        return itemListDto;
+
     }
 
     @Override
@@ -149,6 +144,73 @@ public class ItemServiceImpl implements ItemService {
         checkBookingItem(user, item);
         Comment comment = CommentMapper.toComment(commentDto, user, item);
         return CommentMapper.toCommentDto(commentRepository.save(comment), user);
+    }
+
+    private Map<Long, List<Booking>> getItemBookingMap(List<Long> itemIds) {
+        List<Booking> bookingListForItems = bookingRepository
+                .findAllByItemIdsAndStatus(itemIds, StatusBooking.APPROVED); // Собрали брони для всех вещей
+        Map<Long, List<Booking>> itemBookingMap = new HashMap<>(); // Сопоставляем лист броней с вещами
+        for (Booking booking : bookingListForItems) {
+            Long bookingId = booking.getItem().getId();
+            if (!itemBookingMap.containsKey(bookingId)) {
+                itemBookingMap.put(bookingId, new ArrayList<>());
+                itemBookingMap.get(bookingId).add(booking);
+            } else {
+                itemBookingMap.get(bookingId).add(booking);
+            }
+        }
+        return itemBookingMap;
+    }
+
+    private Map<Long, List<Comment>> getItemCommentMap(List<Long> itemIds) {
+        List<Comment> commentListForItems = commentRepository
+                .getCommetListForItemIds(itemIds); // Собрали комментарии для всех вещей
+
+        Map<Long, List<Comment>> itemCommentMap = new HashMap<>(); // Сопоставляем лист комментарий с вещами
+        for (Comment comment : commentListForItems) {
+            Long commentId = comment.getItem().getId();
+            if (!itemCommentMap.containsKey(commentId)) {
+                itemCommentMap.put(commentId, new ArrayList<>());
+                itemCommentMap.get(commentId).add(comment);
+            } else {
+                itemCommentMap.get(commentId).add(comment);
+            }
+        }
+        return itemCommentMap;
+    }
+
+    private List<ItemListDto> getItemListDto(List<Item> itemList,
+                                             Map<Long, List<Booking>> itemBookingMap,
+                                             Map<Long, List<Comment>> itemCommentMap) {
+        List<ItemListDto> listItemListDto = new ArrayList<>();
+
+        for (Item item : itemList) {
+            LocalDateTime lastBooking;
+            LocalDateTime nextBooking;
+            List<Booking> bookingList = itemBookingMap.get(item.getId());
+            if (bookingList == null) {
+                lastBooking = null;
+                nextBooking = null;
+            } else if (bookingList.size() == 1) {
+                lastBooking = bookingList.get(0).getStart();
+                nextBooking = null;
+            } else {
+                lastBooking = bookingList.get(0).getStart();
+                nextBooking = bookingList.get(1).getStart();
+            }
+            List<CommentDto> commentDtoList;
+            if (itemCommentMap.get(item.getId()) == null) {
+                commentDtoList = new ArrayList<>();
+            } else {
+                commentDtoList = itemCommentMap.get(item.getId())
+                        .stream()
+                        .map((comment) -> CommentMapper.toCommentDto(comment, comment.getUser()))
+                        .collect(Collectors.toList());
+            }
+            listItemListDto.add(ItemMapper.toItemListDto(item, lastBooking, nextBooking, commentDtoList));
+        }
+
+        return listItemListDto;
     }
 
     private List<Comment> getCommetListForItem(Long itemId) {

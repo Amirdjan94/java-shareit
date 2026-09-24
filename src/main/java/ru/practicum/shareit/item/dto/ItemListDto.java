@@ -4,6 +4,7 @@ import lombok.Data;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Component
 @Data
@@ -13,4 +14,5 @@ public class ItemListDto {
     String description; // развёрнутое описание
     LocalDateTime lastBooking;
     LocalDateTime nextBooking;
+    List<CommentDto> comments;
 }

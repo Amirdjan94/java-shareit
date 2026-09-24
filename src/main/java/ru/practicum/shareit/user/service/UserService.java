@@ -14,7 +14,5 @@ public interface UserService {
 
     UserDto getUserById(Long id);
 
-    public User getUserEntityById(Long id);
-
     public User checkObjectOwnerAndGetUserEntityById(Long id);
 }

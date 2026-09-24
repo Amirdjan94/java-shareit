@@ -63,7 +63,6 @@ public class UserServiceImpl implements UserService {
         return UserMapper.toUserDto(userRepository.findById(id).get());
     }
 
-    @Override
     public User getUserEntityById(Long id) {
         log.info("Получили запрос на передачу пользоватля с ID-" + id);
         checkUserId(id);
@@ -73,10 +72,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User checkObjectOwnerAndGetUserEntityById(Long id) {
-        log.info("Получили запрос на передачу пользоватля с ID-" + id);
+        log.info("Получили запрос на передачу пользователя с ID-" + id);
         if (id == null || id < 0 || userRepository.findById(id).isEmpty()) {
             log.warn("Пользователя по указаному id не существует - " + id);
-            throw new ForbiddenException("Пользователя по указаному id не существует - " + id);
+            throw new ForbiddenException("Пользователя по указанному id не существует - " + id);
         }
         log.info("Передали пользователя по ID-" + id);
         return userRepository.findById(id).get();

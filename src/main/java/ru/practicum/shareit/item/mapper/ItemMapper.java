@@ -53,13 +53,15 @@ public class ItemMapper {
     }
 
     public static ItemListDto toItemListDto(Item item, LocalDateTime lastBooking,
-                                            LocalDateTime nextBooking) {
+                                            LocalDateTime nextBooking,
+                                            List<CommentDto> commentDtoList) {
         ItemListDto itemListDto = new ItemListDto();
         itemListDto.setId(item.getId());
         itemListDto.setName(item.getName());
         itemListDto.setDescription(item.getDescription());
         itemListDto.setLastBooking(lastBooking);
         itemListDto.setNextBooking(nextBooking);
+        itemListDto.setComments(commentDtoList);
         return itemListDto;
     }
 }
