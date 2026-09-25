@@ -13,6 +13,7 @@ import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -59,26 +60,33 @@ public class UserServiceImpl implements UserService {
     public UserDto getUserById(Long id) {
         log.info("Получили запрос на передачу пользоватля с ID-" + id);
         checkUserId(id);
+        Optional<User> user = userRepository.findById(id);
+        if (user.isEmpty()) {
+            log.warn("Пользователя по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
+        }
         log.info("Передали пользователя по ID-" + id);
-        return UserMapper.toUserDto(userRepository.findById(id).get());
+        return UserMapper.toUserDto(user.get());
     }
 
     public User getUserEntityById(Long id) {
         log.info("Получили запрос на передачу пользоватля с ID-" + id);
         checkUserId(id);
+        Optional<User> user = userRepository.findById(id);
+        if (user.isEmpty()) {
+            log.warn("Пользователя по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
+        }
         log.info("Передали пользователя по ID-" + id);
-        return userRepository.findById(id).get();
+        return user.get();
     }
 
     @Override
-    public User checkObjectOwnerAndGetUserEntityById(Long id) {
-        log.info("Получили запрос на передачу пользователя с ID-" + id);
+    public void checkObjectOwnerAndGetUserEntityById(Long id) {
         if (id == null || id < 0 || userRepository.findById(id).isEmpty()) {
             log.warn("Пользователя по указаному id не существует - " + id);
             throw new ForbiddenException("Пользователя по указанному id не существует - " + id);
         }
-        log.info("Передали пользователя по ID-" + id);
-        return userRepository.findById(id).get();
     }
 
     private void checkEmailNewUser(User user) {
@@ -100,7 +108,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private void checkUserId(Long id) {
-        if (id == null || id < 0 || userRepository.findById(id).isEmpty()) {
+        if (id == null || id < 0) {
             log.warn("Пользователя по указаному id не существует - " + id);
             throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
         }

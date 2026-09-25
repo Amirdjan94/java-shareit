@@ -16,7 +16,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserServiceImpl;
+import ru.practicum.shareit.user.repository.UserRepository;
+import ru.practicum.shareit.user.service.UserService;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -26,27 +27,30 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ItemServiceImpl implements ItemService {
 
-    UserServiceImpl userService;
+    UserService userService;
     BookingRepository bookingRepository;
+    UserRepository userRepository;
     ItemRepository itemRepository;
     CommentRepository commentRepository;
 
-    public ItemServiceImpl(@Qualifier("userServiceImpl") UserServiceImpl userService,
+    public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService,
                            @Qualifier("itemRepository") ItemRepository itemRepository,
                            @Qualifier("bookingRepository") BookingRepository bookingRepository,
-                           @Qualifier("commentRepository") CommentRepository commentRepository
+                           @Qualifier("commentRepository") CommentRepository commentRepository,
+                           @Qualifier("userRepository") UserRepository userRepository
     ) {
         this.userService = userService;
         this.itemRepository = itemRepository;
         this.bookingRepository = bookingRepository;
         this.commentRepository = commentRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
     public ItemDto createItem(Long userId, ItemDto itemDto) {
         log.info("Получили запрос на добавление новой вещи - " + itemDto + "\n от пользователя c ID - " + userId);
         log.info("Проверяем ID пользоваеля");
-        User user = userService.getUserEntityById(userId);
+        User user = getUserEntityById(userId);
         normalizeField(itemDto);
         Item item = ItemMapper.toItem(user, itemDto);
         Item newItem = itemRepository.save(item);
@@ -139,7 +143,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public CommentDto addCommentForItem(Long userId, Long itemId, CommentDto commentDto) {
         log.info("Получили запрос на добавление комментария - " + commentDto);
-        User user = userService.getUserEntityById(userId);
+        User user = getUserEntityById(userId);
         Item item = getItemEntityById(itemId);
         checkBookingItem(user, item);
         Comment comment = CommentMapper.toComment(commentDto, user, item);
@@ -274,4 +278,24 @@ public class ItemServiceImpl implements ItemService {
         }
         return itemRepository.save(item);
     }
+
+    public User getUserEntityById(Long id) {
+        log.info("Получили запрос на передачу пользоватля с ID-" + id);
+        checkUserId(id);
+        Optional<User> user = userRepository.findById(id);
+        if (user.isEmpty()) {
+            log.warn("Пользователя по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
+        }
+        log.info("Передали пользователя по ID-" + id);
+        return user.get();
+    }
+
+    private void checkUserId(Long id) {
+        if (id == null || id < 0) {
+            log.warn("Пользователя по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
+        }
+    }
+
 }

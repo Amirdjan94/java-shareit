@@ -16,7 +16,8 @@ import ru.practicum.shareit.exception.ObjectNotFoundException;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.service.ItemServiceImpl;
 import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.service.UserServiceImpl;
+import ru.practicum.shareit.user.repository.UserRepository;
+import ru.practicum.shareit.user.service.UserService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -30,22 +31,25 @@ import java.util.stream.Collectors;
 public class BookingServiceImpl implements BookingService {
 
     BookingRepository bookingRepository;
-    UserServiceImpl userService;
+    UserRepository userRepository;
+    UserService userService;
     ItemServiceImpl itemService;
 
     public BookingServiceImpl(@Qualifier("bookingRepository") BookingRepository bookingRepository,
-                              @Qualifier("userServiceImpl") UserServiceImpl userService,
-                              @Qualifier("itemServiceImpl") ItemServiceImpl itemService) {
+                              @Qualifier("userServiceImpl") UserService userService,
+                              @Qualifier("itemServiceImpl") ItemServiceImpl itemService,
+                              @Qualifier("userRepository") UserRepository userRepository) {
         this.bookingRepository = bookingRepository;
         this.userService = userService;
         this.itemService = itemService;
+        this.userRepository = userRepository;
     }
 
     @Override
     public BookingSpecificationDto createBooking(BookingDto bookingDto, Long userId) {
         log.info("Получили запрос на бронирование - " + bookingDto + " от пользователя " + userId);
         log.info("Поиск клиента в БД - " + userId);
-        User user = userService.getUserEntityById(userId);
+        User user = getUserEntityById(userId);
         log.info("Поиск вещи в БД - " + bookingDto.getItemId());
         Item item = itemService.getItemEntityById(bookingDto.getItemId());
         log.info("Валидация статуса вещи");
@@ -86,7 +90,11 @@ public class BookingServiceImpl implements BookingService {
         userService.checkObjectOwnerAndGetUserEntityById(userId);
         Booking booking = getBookingEntityById(bookingId);
         checkBookingOwner(userId, booking);
-        if (statusBooking && booking.getStatus().equals(StatusBooking.WAITING)) {
+        if (!booking.getStatus().equals(StatusBooking.WAITING)) {
+            log.warn("Бронирование не находится в ожидании");
+            throw new ConditionsNotMetException("Бронирование не находится в ожидании");
+        }
+        if (statusBooking) {
             booking.setStatus(StatusBooking.APPROVED);
             return BookingMapper.toBookingSpecificationDto(bookingRepository.save(booking));
         } else {
@@ -212,6 +220,25 @@ public class BookingServiceImpl implements BookingService {
                 bookingDto.getStart().isAfter(bookingDto.getEnd())) {
             log.warn("Не корректные даты периода бронирования");
             throw new ConditionsNotMetException("Не корректные даты периода бронирования");
+        }
+    }
+
+    public User getUserEntityById(Long id) {
+        log.info("Получили запрос на передачу пользоватля с ID-" + id);
+        checkUserId(id);
+        Optional<User> user = userRepository.findById(id);
+        if (user.isEmpty()) {
+            log.warn("Пользователя по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
+        }
+        log.info("Передали пользователя по ID-" + id);
+        return user.get();
+    }
+
+    private void checkUserId(Long id) {
+        if (id == null || id < 0) {
+            log.warn("Пользователя по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
         }
     }
 
