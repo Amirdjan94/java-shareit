@@ -12,4 +12,6 @@ public interface UserService {
     Map<String, String> deleteUser(Long id);
 
     UserDto getUserById(Long id);
+
+    public void checkObjectOwnerAndGetUserEntityById(Long id);
 }
