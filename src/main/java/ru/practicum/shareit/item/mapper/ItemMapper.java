@@ -4,6 +4,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Component;
 import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.model.Request;
 import ru.practicum.shareit.user.model.User;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,9 @@ public class ItemMapper {
         itemDto.setName(item.getName());
         itemDto.setDescription(item.getDescription());
         itemDto.setAvailable(item.getAvailable());
+        if (item.getRequest() != null) {
+            itemDto.setRequestId(item.getRequest().getId());
+        }
         return itemDto;
     }
 
@@ -27,7 +31,16 @@ public class ItemMapper {
         item.setDescription(itemDto.getDescription());
         item.setAvailable(itemDto.getAvailable());
         item.setUser(user);
-        item.setRequest(null);
+        return item;
+    }
+
+    public static Item toItem(User user, ItemDto itemDto, Request request) {
+        Item item = new Item();
+        item.setName(itemDto.getName());
+        item.setDescription(itemDto.getDescription());
+        item.setAvailable(itemDto.getAvailable());
+        item.setUser(user);
+        item.setRequest(request);
         return item;
     }
 
@@ -63,5 +76,13 @@ public class ItemMapper {
         itemListDto.setNextBooking(nextBooking);
         itemListDto.setComments(commentDtoList);
         return itemListDto;
+    }
+
+    public static ItemForRequestDto toItemForRequestDto(Item item, Long userid) {
+        ItemForRequestDto itemForRequestDto = new ItemForRequestDto();
+        itemForRequestDto.setId(item.getId());
+        itemForRequestDto.setName(item.getName());
+        itemForRequestDto.setOwnerId(userid);
+        return itemForRequestDto;
     }
 }

@@ -1,4 +1,4 @@
-package ru.practicum.shareit.request;
+package ru.practicum.shareit.request.model;
 
 import jakarta.validation.constraints.Size;
 import lombok.Data;

@@ -31,7 +31,7 @@ public class Item {
     @JoinColumn(name = "owner_id") // id владельца вещи
     private User user;
 
-    @OneToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "request_id")
     private Request request; // если вещь была создана по запросу другого пользователя, то в этом поле будет храниться ссылка на соответствующий запрос
 }

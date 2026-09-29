@@ -15,6 +15,8 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.model.Request;
+import ru.practicum.shareit.request.reposirtory.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
@@ -32,18 +34,21 @@ public class ItemServiceImpl implements ItemService {
     UserRepository userRepository;
     ItemRepository itemRepository;
     CommentRepository commentRepository;
+    ItemRequestRepository itemRequestRepository;
 
     public ItemServiceImpl(@Qualifier("userServiceImpl") UserService userService,
                            @Qualifier("itemRepository") ItemRepository itemRepository,
                            @Qualifier("bookingRepository") BookingRepository bookingRepository,
                            @Qualifier("commentRepository") CommentRepository commentRepository,
-                           @Qualifier("userRepository") UserRepository userRepository
+                           @Qualifier("userRepository") UserRepository userRepository,
+                           @Qualifier("itemRequestRepository") ItemRequestRepository itemRequestRepository
     ) {
         this.userService = userService;
         this.itemRepository = itemRepository;
         this.bookingRepository = bookingRepository;
         this.commentRepository = commentRepository;
         this.userRepository = userRepository;
+        this.itemRequestRepository = itemRequestRepository;
     }
 
     @Override
@@ -52,7 +57,14 @@ public class ItemServiceImpl implements ItemService {
         log.info("Проверяем ID пользоваеля");
         User user = getUserEntityById(userId);
         normalizeField(itemDto);
-        Item item = ItemMapper.toItem(user, itemDto);
+        Request request;
+        Item item;
+        if (itemDto.getRequestId() != null) {
+            request = getRequestEntityById(itemDto.getRequestId());
+            item = ItemMapper.toItem(user, itemDto, request);
+        } else {
+            item = ItemMapper.toItem(user, itemDto);
+        }
         Item newItem = itemRepository.save(item);
         return ItemMapper.toItemDto(newItem);
     }
@@ -295,6 +307,26 @@ public class ItemServiceImpl implements ItemService {
         if (id == null || id < 0) {
             log.warn("Пользователя по указаному id не существует - " + id);
             throw new ObjectNotFoundException("Пользователя по указаному id не существует - " + id);
+        }
+    }
+
+    public Request getRequestEntityById(Long id) {
+        log.info("Получили запрос на получение запроса");
+        log.info("Проверяем ID запроса");
+        checkRequestId(id);
+        Optional<Request> request = itemRequestRepository.findById(id);
+        if (request.isEmpty()) {
+            log.warn("Запрос на вещь по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Запрос на вещь по указаному id не существует - " + id);
+        }
+        log.info("Передали запрос на вещь по ID-" + id);
+        return request.get();
+    }
+
+    private void checkRequestId(Long id) {
+        if (id == null || id < 0) {
+            log.warn("Запрос на вещь по указаному id не существует - " + id);
+            throw new ObjectNotFoundException("Запрос на вещь по указаному id не существует - " + id);
         }
     }
 

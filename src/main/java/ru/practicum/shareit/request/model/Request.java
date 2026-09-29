@@ -6,6 +6,8 @@ import lombok.Setter;
 import lombok.ToString;
 import ru.practicum.shareit.user.model.User;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @ToString
@@ -24,4 +26,7 @@ public class Request {
     @ManyToOne
     @JoinColumn(name = "requestor_id")
     private User user;
+
+    @JoinColumn(name = "created")
+    LocalDateTime created;
 }
