@@ -1,24 +1,37 @@
 package ru.practicum.shareit.item.model;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import ru.practicum.shareit.request.model.Request;
+import ru.practicum.shareit.user.model.User;
 
-/**
- * TODO Sprint add-controllers.
- */
-@Data
+@Getter
+@Setter
+@ToString
+@Entity
+@Table(name = "items", schema = "public")
 public class Item {
-    Long id; // уникальный идентификатор вещи;
-    @NotNull
-    @NotBlank
-    @Size(max = 200)
-    String name; // краткое название
-    @Size(max = 200)
-    String description; // развёрнутое описание
-    @NotNull
-    Boolean available; // статус о том, доступна или нет вещь для аренды
-    Long userId; // id владельца вещи
-    Long requestItemId; // если вещь была создана по запросу другого пользователя, то в этом поле будет храниться ссылка на соответствующий запрос
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id; // уникальный идентификатор вещи;
+
+    @Column(name = "name", length = 200, nullable = false)
+    private String name; // краткое название
+
+    @Column(name = "description", length = 200)
+    private String description; // развёрнутое описание
+
+    @Column(name = "is_available", nullable = false)
+    private Boolean available; // статус о том, доступна или нет вещь для аренды
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "owner_id") // id владельца вещи
+    private User user;
+
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "request_id")
+    private Request request; // если вещь была создана по запросу другого пользователя, то в этом поле будет храниться ссылка на соответствующий запрос
 }

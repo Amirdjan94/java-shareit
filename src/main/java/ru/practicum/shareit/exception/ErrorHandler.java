@@ -40,4 +40,10 @@ public class ErrorHandler {
         return new ErrorResponse("Что-то пошло не так. Обратитесь к системному администратору", e.getMessage());
     }
 
+    @ExceptionHandler
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleForbiddenException(final ForbiddenException e) {
+        return new ErrorResponse("Что-то пошло не так. Обратитесь к системному администратору", e.getMessage());
+    }
+
 }
