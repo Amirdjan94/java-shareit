@@ -85,7 +85,7 @@ public class UserServiceImplTest {
         TypedQuery<Long> query = em.createQuery("Select max(u.id) from User u ", Long.class);
         Long maxUserId = query.getSingleResult();
         assertThrows(ForbiddenException.class,
-                ()->service.checkObjectOwnerAndGetUserEntityById(maxUserId+1)
+                () -> service.checkObjectOwnerAndGetUserEntityById(maxUserId + 1)
         );
     }
 
