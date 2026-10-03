@@ -72,7 +72,7 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto updateItem(Long userId, Map<String, String> updatesItem, Long itemId) {
         log.info("Получили запрос на редактирование вещи с ID - " + itemId + "\n от пользователя c ID - " + userId);
-        log.info("Проверяем ID пользоваеля");
+        log.info("Проверяем ID пользователя");
         userService.getUserById(userId);
         log.info("Проверяем ID вещи и его владельца");
         checkItem(itemId, userId);
